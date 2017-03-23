@@ -65,8 +65,10 @@ using BLE (Bluetooth Low Energy).
 
     var serviceName = 'Tedduino'; //update this if you changed the bleServiceName in the Tedduino.ino file
     var characteristicUUID = '00002a37-0000-1000-8000-00805f9b34fb';
-    var lightsOnURL = 'http://maker.ifttt.com/trigger/Tedduino/with/key/fzaNThNuK_aBJltOHTaiqmAeAeZI_LCowo-PAT1ryKn';
-    var lightsOffURL = 'http://maker.ifttt.com/trigger/Tedduino/with/key/fzaNThNuK_aBJltOHTaiqmAeAeZI_LCowo-PAT1ryKn';
+    var makerURL = 'http://maker.ifttt.com/trigger/';
+    var makerKey = '/with/key/INSERT YOUR KEY HERE';
+    var lightsOnURL = makerURL + 'tedduino_on' + makerKey;
+    var lightsOffURL = makerURL + 'tedduino_off' + makerKey;
     var lightStatus = 0; // 0 - off, 1 - on
 
     app.test = function () {
