@@ -7,12 +7,11 @@
 #include <Wire.h>
 #include <CurieBLE.h>
 #include "CurieIMU.h"
-bleServiceName = "Tedduino"; // You're device will appear in bluetooth connection lists under this name
-serviceUUID = "input your UUID here";
-characteristicUUID = "input your UUID here";
+#include "config.h"
+
 BLEPeripheral blePeripheral;
 BLEService bleService(serviceUUID);
-BLEUnsignedCharCharacteristic bleCharacteristic(characteristicUUID, BLERead | BLEWrite);
+BLECharacteristic bleCharacteristic(characteristicUUID, BLERead | BLENotify, 2);
 
 #include "rgb_lcd.h"
 rgb_lcd lcd;
@@ -26,17 +25,6 @@ const int pinSound = A0;
 const int pinLight = A1;
 const int pinTemp = A2;
 const int pinPot = A3;
-
-#define IN1  8
-#define IN2  9
-#define IN3  10
-#define IN4  11
-int Steps = 0;
-boolean Direction = true;// gre
-unsigned long last_time;
-unsigned long currentMillis;
-int steps_left=4095;
-long time;
 
 int menu = 0;
 int previousButtonState = 0;
@@ -55,15 +43,12 @@ void setup() {
   pinMode(pinPot, INPUT);
   pinMode(pinTouch, INPUT);
   pinMode(pinButton, INPUT);
-  pinMode(IN1, OUTPUT); 
-  pinMode(IN2, OUTPUT); 
-  pinMode(IN3, OUTPUT); 
-  pinMode(IN4, OUTPUT); 
   blePeripheral.setLocalName(bleServiceName);
   blePeripheral.setAdvertisedServiceUuid(bleService.uuid());
   blePeripheral.addAttribute(bleService);
   blePeripheral.addAttribute(bleCharacteristic);
-  bleCharacteristic.setValue(0);
+  const unsigned char bleCharArray[2] = { 0, (char)1 };
+  bleCharacteristic.setValue(bleCharArray, 2);
   blePeripheral.begin();
   
   CurieIMU.begin();
@@ -75,35 +60,19 @@ void setup() {
 
 void loop() {
   printGyroAccel();
-  digitalWrite(pinLED, LOW);
+  digitalWrite(pinLED, LOW);  
+  breath(REG_RED);
+  breath(REG_GREEN);
+  breath(REG_BLUE);
   BLECentral central = blePeripheral.central();
   if (central) {
     Serial.print("Connected to central: ");
-    Serial.println(central.address()); //central's MAC address
-    while (central.connected()) {
-      digitalWrite(pinLED, HIGH);
-      resetLCD();
-      if (bleCharacteristic.written()) {
-        Serial.println(bleCharacteristic.value());
-        if (bleCharacteristic.value() == 1) {
-          Serial.println("Toggle");
-          nextMenu();
-        } 
-        else if (bleCharacteristic.value() == 3) {
-          Serial.println("Motor");
-          motor();
-        }
-        else {
-          Serial.println("Play Sound");
-          playSong();
-        }
-      }      
-      displayMenu();
-    }
-    Serial.print(F("Disconnected from central: "));
     Serial.println(central.address());
+    while (central.connected()) {
+      displayMenu();
+      delay(100);
+    }
   }
-  //displayMenu();
   delay(100);
 }
 
@@ -119,12 +88,19 @@ void nextMenu() {
 void displayMenu() {
   resetLCD();
   
-  int buttonState = digitalRead(pinButton);
+  int buttonState = digitalRead(pinButton); 
   int touchState = digitalRead(pinTouch);
-  buttonState = buttonState | touchState;
-  if (previousButtonState != buttonState) {    
+  buttonState = buttonState | touchState;  
+  if (previousButtonState != buttonState) {
     if (buttonState == 1) {
+      const unsigned char bleCharArray[2] = { 0, (char)1 };
+      bleCharacteristic.setValue(bleCharArray, 2);
       nextMenu();
+      delay(1000);
+    }
+    else {      
+      const unsigned char bleCharArray[2] = { 0, (char)0 };
+      bleCharacteristic.setValue(bleCharArray, 2);
     }
   }
   previousButtonState = buttonState;
@@ -146,6 +122,9 @@ void displayMenu() {
   }
   else if (menu == 5) {
     nightMode();
+  }
+  else if (menu == 6) {
+    printGyroAccel();
   }
   else {
     lcd.print("Error");
@@ -305,88 +284,21 @@ void playNote(char note, int duration) {
   }
 }
 
+void breath(unsigned char color)
+{
 
-
-void motor() {  
-  while(steps_left>0){
-    currentMillis = micros();
-    if(currentMillis-last_time>=1000){
-      stepper(1); 
-      time=time+micros()-last_time;
-      last_time=micros();
-      steps_left--;
+    for(int i=0; i<255; i++)
+    {
+        lcd.setPWM(color, i);
+        delay(5);
     }
-  }
-  Direction=!Direction;
-  steps_left=4095;
-}
 
-void stepper(int xw){
-  for (int x=0;x<xw;x++){
-    switch(Steps){
-       case 0:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, HIGH);
-       break; 
-       case 1:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, HIGH);
-         digitalWrite(IN4, HIGH);
-       break; 
-       case 2:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, HIGH);
-         digitalWrite(IN4, LOW);
-       break; 
-       case 3:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, HIGH);
-         digitalWrite(IN3, HIGH);
-         digitalWrite(IN4, LOW);
-       break; 
-       case 4:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, HIGH);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, LOW);
-       break; 
-       case 5:
-         digitalWrite(IN1, HIGH); 
-         digitalWrite(IN2, HIGH);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, LOW);
-       break; 
-         case 6:
-         digitalWrite(IN1, HIGH); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, LOW);
-       break; 
-       case 7:
-         digitalWrite(IN1, HIGH); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, HIGH);
-       break; 
-       default:
-         digitalWrite(IN1, LOW); 
-         digitalWrite(IN2, LOW);
-         digitalWrite(IN3, LOW);
-         digitalWrite(IN4, LOW);
-       break; 
+    delay(500);
+    for(int i=254; i>=0; i--)
+    {
+        lcd.setPWM(color, i);
+        delay(5);
     }
-    SetDirection();
-  }
-}
 
-void SetDirection(){
-  if(Direction==1){ Steps++;}
-  if(Direction==0){ Steps--; }
-  if(Steps>7){Steps=0;}
-  if(Steps<0){Steps=7; }
+    delay(500);
 }
-

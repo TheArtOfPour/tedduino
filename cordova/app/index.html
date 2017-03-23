@@ -6,129 +6,188 @@ using BLE (Bluetooth Low Energy).
 -->
 <head>
 
-	<meta charset="utf-8" />
-	<meta name="viewport" content="width=device-width, user-scalable=no
-		initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0" />
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, user-scalable=no
+		initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0"/>
 
-	<title>Arduino101 LED On/Off BLE</title>
+    <title>Tedduino BLE</title>
 
-	<style>
-		@import 'ui/css/evothings-app.css';
-	</style>
+    <style>
+        @import 'ui/css/evothings-app.css';
+    </style>
 
-	<script>
-	// Redirect console.log to Evothings Workbench.
-	if (window.hyper && window.hyper.log) { console.log = hyper.log }
-	window.onerror = function(msg, url, line)
-	{
-		console.log(msg + ": " + url + ":" + line);
-	};
-	</script>
+    <script>
+        // Redirect console.log to Evothings Workbench.
+        if (window.hyper && window.hyper.log) {
+            console.log = hyper.log
+        }
+        window.onerror = function (msg, url, line) {
+            console.log(msg + ": " + url + ":" + line);
+        };
+    </script>
 
-	<script src="cordova.js"></script>
-	<script src="libs/jquery/jquery.js"></script>
-	<script src="libs/evothings/evothings.js"></script>
-	<script src="libs/evothings/ui/ui.js"></script>
-	<script src="libs/evothings/arduinoble/arduinoble.js"></script>
+    <script src="cordova.js"></script>
+    <script src="libs/jquery/jquery.js"></script>
+    <script src="libs/evothings/evothings.js"></script>
+    <script src="libs/evothings/ui/ui.js"></script>
+    <script src="libs/evothings/arduinoble/arduinoble.js"></script>
 
 </head>
 
 <body ontouchstart=""><!-- ontouchstart="" enables low-delay CSS transitions. -->
 
-	<header>
-		<button class="back" onclick="history.back()">
-			<img src="ui/images/arrow-left.svg" />
-		</button>
+<header>
+    <button class="back" onclick="history.back()">
+        <img src="ui/images/arrow-left.svg"/>
+    </button>
 
-		<img class="logotype" src="ui/images/logo.svg" alt="Evothings" />
+    <img class="logotype" src="ui/images/logo.svg" alt="Evothings"/>
 
-		<!--<button class="menu" onclick=""><img src="ui/images/menu.svg" /></button>-->
-	</header>
+    <!--<button class="menu" onclick=""><img src="ui/images/menu.svg" /></button>-->
+</header>
 
-	<h1>Arduino101 LED On/Off BLE</h1>
+<h1>Tedduino BLE</h1>
 
-	<p id="info">Initializing...</p>
+<p id="info">Initializing...</p>
 
-	<button class="yellow wide" onclick="app.connect()">CONNECT</button>
+<button class="yellow wide" onclick="app.connect()">CONNECT</button>
 
-	<br />
+<br/>
 
-	<button class="green wide big" onclick="app.ledOn()">LED ON</button>
+<button class="green wide big" onclick="app.test()">TEST</button>
 
-	<br />
+<script>
+    // Application object.
+    var app = {};
 
-	<button class="red wide big" onclick="app.ledOff()">LED OFF</button>
+    // Connected device.
+    app.device = null;
 
-	<script>
-	// Application object.
-	var app = {}
+    var serviceName = 'Tedduino'; //update this if you changed the bleServiceName in the Tedduino.ino file
+    var characteristicUUID = '00002a37-0000-1000-8000-00805f9b34fb';
+    var lightsOnURL = 'http://maker.ifttt.com/trigger/Tedduino/with/key/fzaNThNuK_aBJltOHTaiqmAeAeZI_LCowo-PAT1ryKn';
+    var lightsOffURL = 'http://maker.ifttt.com/trigger/Tedduino/with/key/fzaNThNuK_aBJltOHTaiqmAeAeZI_LCowo-PAT1ryKn';
+    var lightStatus = 0; // 0 - off, 1 - on
 
-	// Connected device.
-	app.device = null;
+    app.test = function () {
+        if (app.device) {
+            app.device.readCharacteristic(
+                characteristicUUID,
+                function (data) {
+                    var buttonStatus = new DataView(data).getUint16(0, false);
+                    if (buttonStatus == 0) {
+                        app.showMessage("Ripe for the pressing...");
+                    }
+                    else {
+                        app.showMessage("You're pressing my button(s)!");
+                    }
+                    console.log(buttonStatus);
+                },
+                function (errorCode) {
+                    app.showMessage(errorCode);
+                    console.log(errorCode);
+                }
+            );
+        }
+        else {
+            app.showMessage("???");
+            console.log('No Device');
+        }
+    };
 
-	var serviceName = 'Tedduino'; //update this if you changed the bleServiceName in the Tedduino.ino file
-	var charactersticUUID = 'put your UUID here';
+    app.startNotifications = function () {
+        if (app.device) {
+            app.device.enableNotification(
+                characteristicUUID,
+                function (data) {
+                    var buttonStatus = new DataView(data).getUint16(0, false);
+                    if (buttonStatus == 0) {
+                        app.showMessage("_[-]_");
+                    }
+                    else {
+                        app.showMessage("_____");
+                        if (lightStatus == 0) {
+                            app.turnLightsOn();
+                        }
+                        else {
+                            app.turnLightsOff();
+                        }
+                    }
+                },
+                function (errorCode) {
+                    app.showMessage(errorCode);
+                    console.log(errorCode);
+                }
+            );
+        }
+        else {
+            console.log('No Device');
+        }
+    };
 
-	// Turn on LED.
-	app.ledOn = function()
-	{
+    app.turnLightsOn = function () {
+        lightStatus = 1;
+        app.httpGET(lightsOnURL);
+        app.showMessage("(>`0-0)>");
+    };
 
-		if (app.device) {
-		    app.device.readCharacteristic(
-		        characteristicUUID,
-				function(data){
-                    var raw = new DataView(data).getUint16(0, false);
-                    console.log(raw);
-		        },
-				function(errorCode){console.log(errorCode);}
-			);
-		}
-		else {
-		    console.log('No Device');
-		}
-	}
+    app.turnLightsOff = function () {
+        lightStatus = 0;
+        app.httpGET(lightsOffURL);
+        app.showMessage("(> X.X)>");
+    };
 
-	// Turn off LED.
-	app.ledOff = function()
-	{
-		app.device && app.device.writeDataArray(new Uint8Array([0]), charactersticUUID);
-	}
+    app.httpGET = function (url) {
+        if (window.cordova){
+            cordovaHTTP.get(
+                url,
+                function (response) {
+                    if (response) {
+                        console.log(response);
+                    }
+                },
+                function (error){
+                    console.log(JSON.stringify(error));
+                }
+            );
+        }
+    };
 
-	app.showMessage = function(info)
-	{
-		document.getElementById('info').innerHTML = info
-	};
+    app.showMessage = function (info) {
+        document.getElementById('info').innerHTML = info
+    };
 
-	// Called when BLE and other native functions are available.
-	app.onDeviceReady = function()
-	{
-		app.showMessage('Touch the connect button to begin.');
-	};
+    // Called when BLE and other native functions are available.
+    app.onDeviceReady = function () {
+        app.showMessage('Please connect to the Tedduino');
+    };
 
-	app.connect = function()
-	{
-		evothings.arduinoble.close();
-		
-		app.showMessage('Connecting...');
+    app.connect = function () {
+        evothings.arduinoble.close();
 
-		evothings.arduinoble.connect(
-			serviceName, // Advertised name of BLE device.
-			function(device)
-			{
-				app.device = device;
-				app.showMessage('Connected! Touch buttons to turn LED on/off.');
-			},
-			function(errorCode)
-			{
-				app.showMessage('Connect error: ' + errorCode + '.');
-			});
-	};
+        app.showMessage('~(*o*~)');
 
-	document.addEventListener(
-		'deviceready',
-		function() { evothings.scriptsLoaded(app.onDeviceReady) },
-		false);
-	</script>
+        evothings.arduinoble.connect(
+            serviceName, // Advertised name of BLE device.
+            function (device) {
+                app.device = device;
+                app.showMessage('t(^.^t)');
+                app.startNotifications();
+            },
+            function (errorCode) {
+                app.showMessage('`(x.x`) ' + errorCode + '.');
+            }
+        );
+    };
+
+    document.addEventListener(
+        'deviceready',
+        function () {
+            evothings.scriptsLoaded(app.onDeviceReady)
+        },
+        false
+    );
+</script>
 
 </body>
 
