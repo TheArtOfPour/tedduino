@@ -1,0 +1,35 @@
+{
+  "name": "Tedduino",
+  "version": "1.0.0",
+  "title": "Tedduino",
+  "description": "Companion app to connect to and subscribe to Arduino 101 BLE notifications to trigger a Maker IFTTT webhook.",
+  "tags": [
+    {
+      "label": "arduino",
+      "type": "platform"
+    },
+    {
+      "label": "ble",
+      "type": "comm"
+    }
+  ],
+  "libraries": [
+    {
+      "name": "jquery",
+      "version": "2.1.1"
+    }
+  ],
+  "plugins": [
+    {
+      "name": "cordova-plugin-ble",
+      "version": "2.0.0"
+    }
+  ],
+  "index-file": "index.html",
+  "app-dir": "app",
+  "uuid": "15f6d42f-966f-4e7a-b3f1-43f048cff2a9",
+  "icon": "app-icon.png",
+  "doc-url": "https://github.com/TheArtOfPour/tedduino",
+  "long-description": "Companion app to connect to and subscribe to Arduino 101 BLE notifications to trigger a Maker IFTTT webhook.",
+  "cordova-id": "com.evothings.examples.arduino101ledonoff"
+}

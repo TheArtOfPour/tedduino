@@ -1,8 +1,11 @@
-//Tedduino101
-//@todo : description and lic
-//@todo : tedometer?
-//@todo : rm motor
-//@todo : add config file for uuid and pins ... and songs
+/*
+ * Tedduino.ino
+ * @author : Justin Revelstoke
+ * @date : 3/25/2017
+ * @description : Arduino code for BLE connection and Grove Shield I/O.
+ *                Displays a menu over RGB LCD offering sensor data and
+ *                an example game.             
+*/
 
 #include <Wire.h>
 #include <CurieBLE.h>
@@ -103,6 +106,7 @@ void displayMenu() {
       bleCharacteristic.setValue(bleCharArray, 2);
     }
   }
+  delay(100);
   previousButtonState = buttonState;
 
   if (menu == 0) {
@@ -286,7 +290,6 @@ void playNote(char note, int duration) {
 
 void breath(unsigned char color)
 {
-
     for(int i=0; i<255; i++)
     {
         lcd.setPWM(color, i);
